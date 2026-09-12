@@ -25,24 +25,22 @@ ALLOWED_MOVES = (
     ((9, 5), (13, 12)),  # 14
 )
 
-# Histogram of # remaining pegs at the end of each game
-remaining_count = [  # pylint: disable-msg=C0103
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-]
+starting_positions = [0] * 15 
 
+# Histogram of # remaining pegs at the end of each game
+remaining_count = [0] * 14
+
+last_remaining_hole = [0] * 15
+
+def calculate_weight(moves):
+    """Calculate the weight of a set of moves."""
+    weight = 0
+    for pos, over, to in moves:
+        weight += pos + over + to
+    return weight
+
+lowest_weight = 10000  # global variable to track the lowest weight found
+winning_moves = []  # global variable to track the moves that produced the lowest weight
 
 def validate(moves):
     """Given a set of moves, make sure they are all legal and end with no more possible moves."""
@@ -70,16 +68,41 @@ def validate(moves):
                 assert board[to]
 
 
+print_count = 0  # global variable to limit the number of full solutions printed
+
 def move(board, moves, pos, over, to):
     """Record a move and then kick off the remainder of the game."""
+    global print_count
+    global lowest_weight, winning_moves
+
     board[pos] = False
     board[over] = False
     board[to] = True
     moves.append([pos, over, to])
     game_over = play(board, moves)  # Keep playing with the updated board
     if game_over:  # that's the end of this game
-        remaining_count[14 - len(moves)] += 1
-        # print('Final:', (14 - len(moves), moves))
+        peg_count = sum(board)
+        remaining_count[peg_count] += 1
+        if peg_count == 1 :
+            last_remaining_hole[board.index(True)] += 1
+            starting_positions[moves[0][0]] += 1  # track which starting positions lead to a single peg left
+            
+            weight = calculate_weight(moves)
+
+            # The most common starting position that leads to a single peg left is 3 and the most common
+            # ending position is 3, so we only track the lowest weight for that combination.
+            if moves[0][2] == 3 and board[3] and weight < lowest_weight:
+                lowest_weight = weight
+                winning_moves = moves.copy()
+
+        if len(moves) < 5 :
+            print('Final:', (peg_count, moves))
+
+        # if peg_count == 1 and print_count < 10:
+        #     assert len(moves) == 13  # otherwise we didn't end with 1 peg
+        #     print('Final:', (peg_count, moves))
+        #     print_count += 1
+
         validate(moves)
 
 
@@ -107,15 +130,20 @@ def main():
         3,
         4,
     ]  # all other positions are rotations or mirrors of these
+    unique_starting_positions = range(15)  # Uncomment this line to test all starting positions
+
     for pos in unique_starting_positions:
-        board = [pos != x for x in range(15)]
+        board = [pos != x for x in range(15)] # Populates the board with True for pegs and False for the empty starting position
         moves = []
         play(board, moves)
 
     # Print the histogram
+    print(f'Lowest weight: {lowest_weight}, Winning moves: {winning_moves}')
     for idx, val in enumerate(remaining_count):
         print(idx, val)
 
+    print('Last remaining hole counts:', last_remaining_hole)
+    print('Starting position counts:', starting_positions)
 
 if __name__ == "__main__":
     main()
