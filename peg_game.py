@@ -30,7 +30,7 @@ starting_positions = [0] * 15
 # Histogram of # remaining pegs at the end of each game
 remaining_count = [0] * 14
 
-last_remaining_hole = [0] * 15
+last_remaining_peg = [0] * 15
 
 def calculate_weight(moves):
     """Calculate the weight of a set of moves."""
@@ -83,8 +83,10 @@ def move(board, moves, pos, over, to):
     if game_over:  # that's the end of this game
         peg_count = sum(board)
         remaining_count[peg_count] += 1
+
+        # Collect statistics on the last remaining hole and starting positions that lead to a single peg left
         if peg_count == 1 :
-            last_remaining_hole[board.index(True)] += 1
+            last_remaining_peg[board.index(True)] += 1
             starting_positions[moves[0][0]] += 1  # track which starting positions lead to a single peg left
             
             weight = calculate_weight(moves)
@@ -95,15 +97,15 @@ def move(board, moves, pos, over, to):
                 lowest_weight = weight
                 winning_moves = moves.copy()
 
+        # Print the pessimal games
         if len(moves) < 5 :
             print('Final:', (peg_count, moves))
 
-        # if peg_count == 1 and print_count < 10:
-        #     assert len(moves) == 13  # otherwise we didn't end with 1 peg
-        #     print('Final:', (peg_count, moves))
-        #     print_count += 1
-
-        validate(moves)
+        # This was used during development and debug to validate that the moves
+        # were all legal and that the game ended with no more valid moves.
+        # That logic is solid now and this validation is no longer needed, but 
+        # it can be uncommented to verify that the moves are valid.
+        #validate(moves)
 
 
 def play(board, moves):
@@ -142,7 +144,7 @@ def main():
     for idx, val in enumerate(remaining_count):
         print(idx, val)
 
-    print('Last remaining hole counts:', last_remaining_hole)
+    print('Last remaining peg counts:', last_remaining_peg)
     print('Starting position counts:', starting_positions)
 
 if __name__ == "__main__":
