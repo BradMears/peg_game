@@ -25,12 +25,25 @@ ALLOWED_MOVES = (
     ((9, 5), (13, 12)),  # 14
 )
 
+## Global variables to track statistics about the games played
+
+# Histogram of starting positions that lead to a single peg left
 starting_positions = [0] * 15 
 
 # Histogram of # remaining pegs at the end of each game
 remaining_count = [0] * 14
 
+# Histogram of the last remaining peg for each game that ends with a single peg
 last_remaining_peg = [0] * 15
+
+lowest_weight = 10000  # global variable to track the lowest weight found
+winning_moves = []  # global variable to track the moves that produced the lowest weight
+
+print_count = 0  # global variable to limit the number of full solutions printed
+
+winners = []  # global variable to track the moves that produced a single peg left
+
+openers = {}  # global variable to track the stats of all opening moves
 
 def calculate_weight(moves):
     """Calculate the weight of a set of moves."""
@@ -38,9 +51,6 @@ def calculate_weight(moves):
     for pos, over, to in moves:
         weight += pos + over + to
     return weight
-
-lowest_weight = 10000  # global variable to track the lowest weight found
-winning_moves = []  # global variable to track the moves that produced the lowest weight
 
 def validate(moves):
     """Given a set of moves, make sure they are all legal and end with no more possible moves."""
@@ -67,9 +77,6 @@ def validate(moves):
             if board[pos] and board[over]:
                 assert board[to]
 
-
-print_count = 0  # global variable to limit the number of full solutions printed
-
 def move(board, moves, pos, over, to):
     """Record a move and then kick off the remainder of the game."""
     global print_count
@@ -84,11 +91,22 @@ def move(board, moves, pos, over, to):
         peg_count = sum(board)
         remaining_count[peg_count] += 1
 
+        # The opening_moves dictionary uses the first two moves as the key and stores both the total
+        # number of times that opening move was used and the number of times it ended in a winning game.
+        #opening_move = (peg_count, f'{moves[0]}-{moves[1]}')
+        opening_move = f'{moves[0]}-{moves[1]}'
+        total_times, winning_times = openers.get(opening_move, (0,0))
+        total_times += 1
+        if peg_count == 1:
+            winning_times += 1
+        openers[opening_move] = (total_times, winning_times)
+
         # Collect statistics on the last remaining hole and starting positions that lead to a single peg left
         if peg_count == 1 :
+            assert moves[-1][2] == board.index(True)  # The last move's 'to' position should be the only peg left
             last_remaining_peg[board.index(True)] += 1
             starting_positions[moves[0][0]] += 1  # track which starting positions lead to a single peg left
-            
+            winners.append(moves.copy())
             weight = calculate_weight(moves)
 
             # The most common starting position that leads to a single peg left is 3 and the most common
@@ -132,7 +150,7 @@ def main():
         3,
         4,
     ]  # all other positions are rotations or mirrors of these
-    unique_starting_positions = range(15)  # Uncomment this line to test all starting positions
+    #unique_starting_positions = range(15)  # Uncomment this line to test all starting positions
 
     for pos in unique_starting_positions:
         board = [pos != x for x in range(15)] # Populates the board with True for pegs and False for the empty starting position
@@ -146,6 +164,22 @@ def main():
 
     print('Last remaining peg counts:', last_remaining_peg)
     print('Starting position counts:', starting_positions)
+
+    # #winners = sorted(winners)
+    # opening_moves = {}
+    # with open('winners.csv', 'w') as f:
+    #     for winner in sorted(winners):
+    #         #the_opening_move = (winner[0], winner[1])
+    #         the_opening_move = f'{winner[0]}-{winner[1]}'
+    #         opening_moves[the_opening_move] = opening_moves.get(the_opening_move, 0) + 1
+    #         for m in winner:
+    #             f.write(f'{m[0]}-{m[1]}-{m[2]}, ')
+    #         f.write(f'\n')
+
+    # print('Opening moves counts:', opening_moves)
+    print('')
+    for key, value in openers.items():
+        print(f"{key}: {value}  ({value[1]/value[0]:.2%})")
 
 if __name__ == "__main__":
     main()
