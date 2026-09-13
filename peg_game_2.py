@@ -14,7 +14,11 @@ class Move(object):
 
     def __repr__(self):
         return f'[{self.pos}, {self.over}, {self.to}]'
-    
+
+# This is a tuple of tuples that defines the allowed moves for each position on the board. 
+# Each inner tuple contains pairs of (over, to) positions that can be jumped to from the current position.    
+# This is only used to create a dictionary of Move objects for each position. The dictionary is used in 
+# the play() function to find all valid moves from a given position.
 ALLOWED_MOVES_TUPLE = (
     ((1, 3), (2, 5)),  # 0
     ((3, 6), (4, 8)),  # 1
@@ -37,8 +41,6 @@ ALLOWED_MOVES = {}  # This will be a dictionary of Move objects for each positio
 for key,value in enumerate(ALLOWED_MOVES_TUPLE):
     ALLOWED_MOVES[key] = [Move(key, over, to) for over, to in value]
 
-print('ALLOWED_MOVES:', ALLOWED_MOVES)
-
 ## Global variables to track statistics about the games played
 
 # # Histogram of starting positions that lead to a single peg left
@@ -59,9 +61,7 @@ print('ALLOWED_MOVES:', ALLOWED_MOVES)
 
 # openers = {}  # global variable to track the stats of all opall_moves[game_counter] = moves.copy()ening moves
 
-#all_moves = []  # global variable to track all moves for all games played
-all_moves = [None] * 7335390
-game_counter = 0  # global variable to track the number of games played
+all_moves = []  # global variable to track all moves for all games played
 
 def calculate_weight(moves):
     """Calculate the weight of a set of moves."""
@@ -98,17 +98,13 @@ def validate(moves):
 
 def move_peg(board, moves, move):
     """Record a move and then kick off the remainder of the game."""
-    global game_counter
-
     board[move.pos] = False
     board[move.over] = False
     board[move.to] = True
     moves.append(move)
     game_over = play(board, moves)  # Keep playing with the updated board
     if game_over:  # that's the end of this game
-        #all_moves.append(moves.copy())
-        all_moves[game_counter] = moves.copy()
-        game_counter += 1
+        all_moves.append(moves.copy())
 
         # This was used during development and debug to validate that the moves
         # were all legal and that the game ended with no more valid moves.
@@ -120,8 +116,8 @@ def play(board, moves):
     """Start from the existing board, walk through all available moves."""
     # This is recursive and doesn't unwind until no more valid moves remain.
     game_over = True
-    for pos, _ in enumerate(board):  # for every spot on the board
-        if board[pos]:  # if it has a peg
+    for pos, is_occupied in enumerate(board):  # for every spot on the board
+        if is_occupied:  # if it has a peg
             for move in ALLOWED_MOVES[pos]:  # loop over all allowed moves from that position
                 assert pos == move.pos
                 if board[move.over] and not board[move.to]:  # If a move is open
@@ -198,7 +194,7 @@ def main():
         3,
         4,
     ]  # all other positions are rotations or mirrors of these
-    unique_starting_positions = range(15)  # Uncomment this line to test all starting positions
+    #unique_starting_positions = range(15)  # Uncomment this line to test all starting positions
 
     for pos in unique_starting_positions:
         board = [pos != x for x in range(15)] # Populates the board with True for pegs and False for the empty starting position
@@ -206,7 +202,7 @@ def main():
         play(board, moves)
 
     print('All moves:', len(all_moves))
-    print('All moves:', all_moves[game_counter-1])
+    print('All moves:', all_moves[-1])
 
 if __name__ == "__main__":
     main()
